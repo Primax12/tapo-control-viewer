@@ -33,8 +33,6 @@ class TapoControlViewer extends LitElement {
 
   resource: {
     filename: string
-    startRec: string
-    endRec: string
     caption: string
     authThumbUrl: string
     authVidUrl: string
@@ -109,8 +107,6 @@ class TapoControlViewer extends LitElement {
       const duration = dayjs.duration((endRec - startRec), "seconds").format("m[m]s[s]")
       return {
         filename,
-        startRec,
-        endRec,
         caption,
         duration
       }
@@ -201,8 +197,6 @@ class TapoControlViewer extends LitElement {
           width:100%;
           height: 65vh;
           overflow-y: scroll;
-          // overflow-x: scroll;
-          // display: flex;
         }
         .menu-responsive .resource-menu figure {
           margin: 0px;
