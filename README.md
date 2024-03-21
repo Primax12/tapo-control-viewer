@@ -15,6 +15,37 @@ Started using the Tapo Control integration for my cameras, and thought the prege
 My miss likes it, so I thought others would too.
 
 # Setup
-Add the card to a dashbaord.
-Set tapo_control_storage_location attribute to the root of the Tapo Control cold files.
+Setup Tapo Control cold files to a path accessible within HomeAssistant, for example:
+```
+/media/Cameras/camera1
+```
+Setup HomeAssistant to serve those files (in configuration.yaml):
+```
+homeassistant:
+   allowlist_external_dirs:
+    - /media/
+   media_dirs:
+    recordings: /media/Cameras
+```
+
+Add the card to a dashboard.
+Set tapo_control_storage_location attribute to the root of the Tapo Control cold files, for examle:
+```
+type: custom:tapo-control-viewer
+tapo_control_storage_location: media-source://media_source/recordings/camera1/
+```
+
 Enjoy.
+
+# Tips
+Setup the card as a Panel, and when on a mobile device, it looks a bit like the Tapo app (video on top, previews list below).
+
+# Credits
+Well, obvously to TarheelGrad1998 for the Gallery-Card custom card this card is heavily based on:
+
+https://github.com/TarheelGrad1998/gallery-card
+
+
+And to JurajNyiri for the Tapo Control integration:
+
+https://github.com/JurajNyiri/HomeAssistant-Tapo-Control
