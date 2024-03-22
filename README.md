@@ -29,10 +29,11 @@ homeassistant:
 ```
 
 Add the card to a dashboard.
-Set tapo_control_storage_location attribute to the root of the Tapo Control cold files, for examle:
+Set tapo_control_storage_location attribute to the root of the Tapo Control cold files, and specify the camera entity, for examle:
 ```
 type: custom:tapo-control-viewer
 tapo_control_storage_location: media-source://media_source/recordings/camera1/
+camera_entity: camera.camera1
 ```
 
 Enjoy.
