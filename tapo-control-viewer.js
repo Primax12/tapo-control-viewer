@@ -12,16 +12,20 @@ import "https://unpkg.com/dayjs@1.11.7/plugin/duration.js?module";
 
 class TapoControlViewer extends LitElement {
 
+  config = null;
   resources = null;
+  selectedIndex = null;
+  liveStreamUrl = null;
 
   static get properties() {
     return {
       _hass: {},
       config: {},
       resources: {},
-      selectedResource: {}
+      selectedIndex: {}
     };
   }
+
   /*
   ***************
   * DATA MODEL: *
@@ -31,36 +35,43 @@ class TapoControlViewer extends LitElement {
     tapo_control_storage_location: string
   }
 
-  resource: {
+  resources: {
     filename: string
     caption: string
     authThumbUrl: string
     authVidUrl: string
-  }
-
-  selectedResource: resource
-
-  resources: resource[]
+  }[]
+  
+  selectedIndex: resource
 
   */
+
   render() {
     return html`
       <ha-card .header="" class="menu-responsive">
         <div class="resource-viewer">
+
           <figure style="margin:5px;">
-            <video class="lzy_video" controls autoplay playsinline src=""></video>
+            <video controls autoplay playsinline src="" style="display:none"></video>
+            <img src=""></img>
           </figure>
+
         </div>
 
         <div class="resource-menu">
+          <figure style="margin:5px;" id="resourceLive" @click="${ev => this.showLivePlayer()}">
+            <img data-src=""/>
+            <figcaption>Live</figcaption>
+          </figure>
           ${this.resources.map((resource, index) => this.getMenuHtml(resource, index))}
         </div>
       </ha-card>`;
   }
 
   getMenuHtml(resource, index) {
+    const selectedFilename = this.selectResource ? this.selectResource.filename : ""
     return html`
-      <figure style="margin:5px;" id="resource${index}" data-imageIndex="${index}" @click="${ev => this.selectResource(index)}" class="${(resource.filename == this.selectedResource ? this.selectedResource.filename : "") ? 'selected' : ''}">
+      <figure style="margin:5px;" id="resource${index}" data-imageIndex="${index}" @click="${ev => this.selectResource(index)}">
         <img class="lzy_img" data-src="${resource.authThumbUrl}"/>
         <figcaption>${resource.caption} <span class="duration">(${resource.duration})</span></figcaption>
       </figure>`
@@ -69,10 +80,6 @@ class TapoControlViewer extends LitElement {
   updated(changedProperties) {
     const arr = this.shadowRoot.querySelectorAll('img.lzy_img')
     arr.forEach((v) => {
-      this.imageObserver.observe(v);
-    })
-    const varr = this.shadowRoot.querySelectorAll('video.lzy_video')
-    varr.forEach((v) => {
       this.imageObserver.observe(v);
     })
   }
@@ -92,7 +99,6 @@ class TapoControlViewer extends LitElement {
 
     this.config = config;
     if (this._hass !== undefined) await this.loadResources();
-
   }
 
   async loadResources() {
@@ -116,9 +122,8 @@ class TapoControlViewer extends LitElement {
       res.authThumbUrl = await this.getAuthThumbUrl(res.filename);
     }
 
-    if (this.resources.length > 0)
-      this.selectResource(0);
-
+    this.liveStreamUrl = await this.getAuthCamUrl();
+    this.updateLivePreview()
   }
 
   async getFilenames() {
@@ -147,12 +152,60 @@ class TapoControlViewer extends LitElement {
     return rep.url
   }
 
+  async getAuthCamUrl() {
+    var camEntity = await this._hass.states[this.config.camera_entity];
+    var url = camEntity.attributes.entity_picture
+    url = url.slice(0, 17) + "_stream" + url.slice(17);
+    return url
+  }
+
+  updateLivePreview() {
+    const livePreview = this.shadowRoot.querySelector("figure#resourceLive img");
+    livePreview.src = this.liveStreamUrl;
+    const livePreviewFig = this.shadowRoot.querySelector("figure#resourceLive");
+    livePreviewFig.classList.add("selected");
+    const livePlayer = this.shadowRoot.querySelector(".resource-viewer figure img");
+    livePlayer.src = this.liveStreamUrl;
+  }
+
   async selectResource(index) {
+    if (index >= this.resources.length) return;
+
+    const livePreviewFig = this.shadowRoot.querySelector("figure#resourceLive");
+    livePreviewFig.classList.remove("selected");
+
+    var el = this.shadowRoot.querySelector("figure#resource" + this.selectedIndex);
+    if(el) el.classList.remove("selected");
+
+    this.selectedIndex = index;
+
+    el = this.shadowRoot.querySelector("figure#resource" + index);
+    if(el) el.classList.add("selected");
+
+    const livePlayer = this.shadowRoot.querySelector(".resource-viewer figure img");
+    livePlayer.style.display = "none";
+
+    const videoPlayer = this.shadowRoot.querySelector(".resource-viewer figure video");
+    videoPlayer.style.display = "block";
     if (!this.resources[index].authVidUrl)
       this.resources[index].authVidUrl = await this.getAuthVidUrl(this.resources[index].filename);
-    this.selectedResource = this.resources[index];
-    const el = this.shadowRoot.querySelector(".resource-viewer figure video");
-    el.src = this.selectedResource.authVidUrl;
+    videoPlayer.src = this.resources[index].authVidUrl;
+  }
+
+  async showLivePlayer() {
+    var el = this.shadowRoot.querySelector("figure#resource" + this.selectedIndex);
+    if(el) el.classList.remove("selected");
+    this.selectedIndex = null;
+
+    const livePreviewFig = this.shadowRoot.querySelector("figure#resourceLive");
+    livePreviewFig.classList.add("selected");
+
+    const videoPlayer = this.shadowRoot.querySelector(".resource-viewer figure video");
+    videoPlayer.src = "";
+    videoPlayer.style.display = "none";
+
+    const livePlayer = this.shadowRoot.querySelector(".resource-viewer figure img");
+    livePlayer.style.display = "block";
   }
 
   set hass(hass) {
@@ -180,7 +233,7 @@ class TapoControlViewer extends LitElement {
         object-fit: contain;
       }
       figure.selected {
-        opacity: 0.5;
+        opacity: 0.25;
       }
       .duration {
         font-style:italic;
